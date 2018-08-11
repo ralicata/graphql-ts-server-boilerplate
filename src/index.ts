@@ -8,7 +8,11 @@ import { resolvers } from './resolvers';
 
 const typeDefs = importSchema(path.join(__dirname, './schema.graphql'));
 
-const server = new GraphQLServer({ typeDefs, resolvers });
-createConnection().then(() => {
-  server.start(() => console.log('Server is running on localhost:4000'));
-});
+export const startServer = async () => {
+  const server = new GraphQLServer({ typeDefs, resolvers });
+  await createConnection();
+  await server.start();
+  console.log('Server is running on localhost:4000');
+};
+
+startServer();
