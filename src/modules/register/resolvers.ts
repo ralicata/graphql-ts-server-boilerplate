@@ -1,17 +1,40 @@
 import * as bcrypt from 'bcryptjs';
+import * as yup from 'yup';
 import { ResolverMap } from '../../types/graphql-utils.d';
 import { GQL } from '../../types/schema';
 import { User } from '../../entity/User';
+import { formatYupError } from '../../utils/formatYupError';
+import {
+  duplicateEmail,
+  emailNotLongEnough,
+  passwordNotLongEnough
+} from './errorMessages';
+
+const schema = yup.object().shape({
+  email: yup
+    .string()
+    .min(3, emailNotLongEnough)
+    .max(255)
+    .email(),
+  password: yup
+    .string()
+    .min(3, passwordNotLongEnough)
+    .max(255)
+});
 
 export const resolvers: ResolverMap = {
   Query: {
     bye: () => `Bye`
   },
   Mutation: {
-    register: async (
-      _: any,
-      { email, password }: GQL.IRegisterOnMutationArguments
-    ) => {
+    register: async (_: any, args: GQL.IRegisterOnMutationArguments) => {
+      try {
+        await schema.validate(args, { abortEarly: false });
+      } catch (err) {
+        return formatYupError(err);
+      }
+
+      const { email, password } = args;
       const userAlreadyExists = await User.findOne({
         where: { email },
         select: ['id']
@@ -21,7 +44,7 @@ export const resolvers: ResolverMap = {
         return [
           {
             path: 'email',
-            message: 'already taken'
+            message: duplicateEmail
           }
         ];
       }
