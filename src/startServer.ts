@@ -4,7 +4,9 @@ import * as fs from 'fs';
 import { mergeSchemas, makeExecutableSchema } from 'graphql-tools';
 import { GraphQLSchema } from 'graphql';
 import { GraphQLServer } from 'graphql-yoga';
+import * as Redis from 'ioredis';
 
+import { User } from './entity/User';
 import { createTypeormConnection } from './utils/createTypeormConnection';
 
 export const startServer = async () => {
@@ -18,7 +20,20 @@ export const startServer = async () => {
     schemas.push(makeExecutableSchema({ resolvers, typeDefs }));
   });
 
-  const server = new GraphQLServer({ schema: mergeSchemas({ schemas }) });
+  const redis = new Redis();
+
+  const server = new GraphQLServer({
+    schema: mergeSchemas({ schemas }),
+    context: { redis }
+  });
+
+  server.express.get('/confirm/:id', async (req, res) => {
+    const { id } = req.params;
+    const userId = await redis.get(id);
+    await User.update({ id: userId }, { confirmed: true });
+    res.send('ok');
+  });
+
   await createTypeormConnection();
   const app = await server.start({
     port: process.env.NODE_ENV === 'test' ? 0 : 4000
