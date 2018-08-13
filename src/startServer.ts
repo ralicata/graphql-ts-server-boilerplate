@@ -24,14 +24,22 @@ export const startServer = async () => {
 
   const server = new GraphQLServer({
     schema: mergeSchemas({ schemas }),
-    context: { redis }
+    context: ({ request }) => ({
+      redis,
+      url: request.protocol + '://' + request.get('host')
+    })
   });
 
   server.express.get('/confirm/:id', async (req, res) => {
     const { id } = req.params;
     const userId = await redis.get(id);
-    await User.update({ id: userId }, { confirmed: true });
-    res.send('ok');
+    if (userId) {
+      await User.update({ id: userId }, { confirmed: true });
+      await redis.del(id);
+      res.send('ok');
+    } else {
+      res.send('invalid');
+    }
   });
 
   await createTypeormConnection();
