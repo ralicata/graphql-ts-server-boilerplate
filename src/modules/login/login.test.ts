@@ -1,8 +1,8 @@
 import { request } from 'graphql-request';
-import { User } from '../../entity/User';
+import { Connection } from 'typeorm';
 import { createTypeormConnection } from '../../utils/createTypeormConnection';
 import { invalidLogin, confirmEmailError } from './errorMessages';
-import { Connection } from 'typeorm';
+import { User } from '../../entity/User';
 
 const email = 'fake@example.com';
 const password = '3sdfsf333q';

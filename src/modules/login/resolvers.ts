@@ -1,9 +1,8 @@
 import * as bcrypt from 'bcryptjs';
-
-import { ResolverMap } from '../../types/graphql-utils.d';
+import { invalidLogin, confirmEmailError } from './errorMessages';
+import { ResolverMap } from '../../types/graphql-utils';
 import { GQL } from '../../types/schema';
 import { User } from '../../entity/User';
-import { invalidLogin, confirmEmailError } from './errorMessages';
 
 const errorResponse = [
   {
@@ -17,11 +16,7 @@ export const resolvers: ResolverMap = {
     b: () => `Ok`
   },
   Mutation: {
-    login: async (
-      _: any,
-      args: GQL.ILoginOnMutationArguments
-      // { redis, url }
-    ) => {
+    login: async (_: any, args: GQL.ILoginOnMutationArguments, { session }) => {
       const { email, password } = args;
 
       const user = await User.findOne({
@@ -46,6 +41,9 @@ export const resolvers: ResolverMap = {
       if (!valid) {
         return errorResponse;
       }
+
+      // valid login
+      session.userId = user.id;
 
       return null;
     }
