@@ -1,31 +1,13 @@
-import { request } from 'graphql-request';
 import { Connection } from 'typeorm';
 import { createTypeormConnection } from '../../utils/createTypeormConnection';
 import { invalidLogin, confirmEmailError } from './errorMessages';
 import { User } from '../../entity/User';
+import { TestClient } from '../../utils/TestClient';
 
 const email = 'fake@example.com';
 const password = '3sdfsf333q';
 
 let conn: Connection;
-
-const loginMutation = (e: string, p: string) => `
-  mutation {
-    login(email: "${e}", password: "${p}") {
-      path
-      message
-    }
-  }
-`;
-
-const registerMutation = (e: string, p: string) => `
-  mutation {
-    register(email: "${e}", password: "${p}") {
-      path
-      message
-    }
-  }
-`;
 
 beforeAll(async () => {
   conn = await createTypeormConnection();
@@ -35,13 +17,12 @@ afterAll(async () => {
   conn.close();
 });
 
-const loginExpectError = async (e: string, p: string, err: {}) => {
-  const response = await request(
-    process.env.TEST_HOST as string,
-    loginMutation(e, p)
-  );
+const client = new TestClient(process.env.TEST_HOST as string);
 
-  expect(response).toEqual({
+const loginExpectError = async (e: string, p: string, err: string) => {
+  const response = await client.login(e, p);
+
+  expect(response.data).toEqual({
     login: [
       {
         path: 'email',
@@ -57,10 +38,7 @@ describe('Login', () => {
   });
 
   test('email not confirmed', async () => {
-    await request(
-      process.env.TEST_HOST as string,
-      registerMutation(email, password)
-    );
+    await client.register(email, password);
 
     await loginExpectError(email, password, confirmEmailError);
 
@@ -68,11 +46,8 @@ describe('Login', () => {
 
     await loginExpectError(email, 'aslkdfjaksdljf', invalidLogin);
 
-    const response = await request(
-      process.env.TEST_HOST as string,
-      loginMutation(email, password)
-    );
+    const response = await client.login(email, password);
 
-    expect(response).toEqual({ login: null });
+    expect(response.data).toEqual({ login: null });
   });
 });

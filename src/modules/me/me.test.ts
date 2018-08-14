@@ -1,7 +1,7 @@
-import axios from 'axios';
 import { Connection } from 'typeorm';
 import { createTypeormConnection } from '../../utils/createTypeormConnection';
 import { User } from '../../entity/User';
+import { TestClient } from '../../utils/TestClient';
 
 const email = 'john2@example.com';
 const password = 'qwerty123';
@@ -23,63 +23,23 @@ afterAll(async () => {
   conn.close();
 });
 
-const loginMutation = (e: string, p: string) => `
-mutation {
-  login(email: "${e}", password: "${p}") {
-    path
-    message
-  }
-}
-`;
-
-const meQuery = `
-{
-  me {
-    id
-    email
-  }
-}
-`;
+const client = new TestClient(process.env.TEST_HOST as string);
 
 describe('me()', () => {
   test("can't get user if not logged in", async () => {
-    const response = await axios.post(
-      process.env.TEST_HOST as string,
-      {
-        query: meQuery
-      },
-      {
-        withCredentials: true
-      }
-    );
+    const response = await client.me();
 
-    expect(response.data.data).toEqual({
+    expect(response.data).toEqual({
       me: null
     });
   });
 
   test('get user if logged in', async () => {
-    await axios.post(
-      process.env.TEST_HOST as string,
-      {
-        query: loginMutation(email, password)
-      },
-      {
-        withCredentials: true
-      }
-    );
+    await client.login(email, password);
 
-    const response = await axios.post(
-      process.env.TEST_HOST as string,
-      {
-        query: meQuery
-      },
-      {
-        withCredentials: true
-      }
-    );
+    const response = await client.me();
 
-    expect(response.data.data).toEqual({
+    expect(response.data).toEqual({
       me: {
         id: userId,
         email
