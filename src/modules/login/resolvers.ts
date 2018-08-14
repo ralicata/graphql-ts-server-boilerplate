@@ -3,6 +3,7 @@ import { invalidLogin, confirmEmailError } from './errorMessages';
 import { ResolverMap } from '../../types/graphql-utils';
 import { GQL } from '../../types/schema';
 import { User } from '../../entity/User';
+import { userSessionIdPrefix } from '../../constants';
 
 const errorResponse = [
   {
@@ -16,7 +17,11 @@ export const resolvers: ResolverMap = {
     b: () => `Ok`
   },
   Mutation: {
-    login: async (_: any, args: GQL.ILoginOnMutationArguments, { session }) => {
+    login: async (
+      _: any,
+      args: GQL.ILoginOnMutationArguments,
+      { session, redis, req }
+    ) => {
       const { email, password } = args;
 
       const user = await User.findOne({
@@ -44,6 +49,9 @@ export const resolvers: ResolverMap = {
 
       // valid login
       session.userId = user.id;
+      if (req.sessionID) {
+        await redis.lpush(`${userSessionIdPrefix}${user.id}`, req.sessionID);
+      }
 
       return null;
     }
