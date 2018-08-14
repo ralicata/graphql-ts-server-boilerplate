@@ -11,6 +11,5 @@ export default async (
   const result = await resolver(parent, args, context, info);
 
   // afterware
-
   return result;
 };

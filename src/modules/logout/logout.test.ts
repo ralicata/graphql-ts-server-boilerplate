@@ -1,14 +1,14 @@
 import axios from 'axios';
+
+import { User } from '../../entity/User';
 import { Connection } from 'typeorm';
 import { createTypeormConnection } from '../../utils/createTypeormConnection';
-import { User } from '../../entity/User';
-
-const email = 'john2@example.com';
-const password = 'qwerty123';
-let userId: string;
 
 let conn: Connection;
+const email = 'bob5@bob.com';
+const password = 'jlkajoioiqwe';
 
+let userId: string;
 beforeAll(async () => {
   conn = await createTypeormConnection();
   const user = await User.create({
@@ -41,24 +41,14 @@ const meQuery = `
 }
 `;
 
-describe('me()', () => {
-  test("can't get user if not logged in", async () => {
-    const response = await axios.post(
-      process.env.TEST_HOST as string,
-      {
-        query: meQuery
-      },
-      {
-        withCredentials: true
-      }
-    );
+const logoutMutation = `
+mutation {
+  logout
+}
+`;
 
-    expect(response.data.data).toEqual({
-      me: null
-    });
-  });
-
-  test('get user if logged in', async () => {
+describe('logout', () => {
+  test('test logging out a user', async () => {
     await axios.post(
       process.env.TEST_HOST as string,
       {
@@ -85,5 +75,27 @@ describe('me()', () => {
         email
       }
     });
+
+    await axios.post(
+      process.env.TEST_HOST as string,
+      {
+        query: logoutMutation
+      },
+      {
+        withCredentials: true
+      }
+    );
+
+    const response2 = await axios.post(
+      process.env.TEST_HOST as string,
+      {
+        query: meQuery
+      },
+      {
+        withCredentials: true
+      }
+    );
+
+    expect(response2.data.data.me).toBeNull();
   });
 });

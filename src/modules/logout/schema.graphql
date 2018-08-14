@@ -1,0 +1,7 @@
+type Query {
+  c: String!
+}
+
+type Mutation {
+  logout: Boolean
+}
